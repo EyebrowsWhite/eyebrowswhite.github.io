@@ -1,19 +1,32 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  
-  <sitemap>
-    <loc>https://EyebrowsWhite.github.io/en/sitemap.xml</loc>
-    
-  </sitemap>
-  
-  <sitemap>
-    <loc>https://EyebrowsWhite.github.io/de/sitemap.xml</loc>
-    
-  </sitemap>
-  
-  <sitemap>
-    <loc>https://EyebrowsWhite.github.io/dy/sitemap.xml</loc>
-    
-  </sitemap>
-  
-</sitemapindex>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://eyebrowkang.blog/categories/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/categories/frontend/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/tags/frontend-bundlers/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/post/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/tags/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/post/vite-vs-webpack-vs-esbuild/</loc>
+    <lastmod>2021-09-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/tags/react/</loc>
+    <lastmod>2021-07-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://eyebrowkang.blog/post/%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</loc>
+    <lastmod>2021-07-07T00:00:00+00:00</lastmod>
+  </url>
+</urlset>
