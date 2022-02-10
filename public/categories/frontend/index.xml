@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Frontend on Eyebrows Blog</title>
+    <link>https://eyebrowkang.blog/categories/frontend/</link>
+    <description>Recent content in Frontend on Eyebrows Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 05 Sep 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/categories/frontend/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>vite vs webpack vs esbuild</title>
+      <link>https://eyebrowkang.blog/post/vite-vs-webpack-vs-esbuild/</link>
+      <pubDate>Sun, 05 Sep 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://eyebrowkang.blog/post/vite-vs-webpack-vs-esbuild/</guid>
+      <description>vite vs webpack vs esbuild 本篇文章分享下题目中三种打包工具在开发和生产模式中的实际使用感受，希望能对你有所帮助。我使用的技术栈是react+typescri</description>
+    </item>
+    
+    <item>
+      <title>结合React上手esbuild（新手适用）</title>
+      <link>https://eyebrowkang.blog/post/%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</link>
+      <pubDate>Wed, 07 Jul 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://eyebrowkang.blog/post/%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</guid>
+      <description>结合React上手esbuild（新手适用） 我们都知道react有一个官方的脚手架create-react-app，一条命令就可以让你使用r</description>
+    </item>
+    
+  </channel>
+</rss>
