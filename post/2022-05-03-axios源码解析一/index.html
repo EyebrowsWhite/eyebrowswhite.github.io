@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    
+    <meta property="og:site_name" content="Eyebrows White">
+    <meta property="og:type" content="article">
+
+    
+    <meta property="og:image" content="https://eyebrowkang.blog/img/home-bg.jpg">
+    <meta property="twitter:image" content="https://eyebrowkang.blog/img/home-bg.jpg" />
+    
+
+    
+    <meta name="title" content="axios源码解析（一）" />
+    <meta property="og:title" content="axios源码解析（一）" />
+    <meta property="twitter:title" content="axios源码解析（一）" />
+    
+
+    
+    <meta name="description" content="Here is eyebrow&#39;s blog for tech and program">
+    <meta property="og:description" content="Here is eyebrow&#39;s blog for tech and program" />
+    <meta property="twitter:description" content="Here is eyebrow&#39;s blog for tech and program" />
+    
+
+    
+    <meta property="twitter:card" content="summary" />
+    
+    
+
+    <meta name="keyword"  content="eyebrow, Eyebrows White, 博客, 个人网站, frontend, 前端">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>axios源码解析（一）-eyebrow&#39;s blog</title>
+
+    <link rel="canonical" href="/post/2022-05-03-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%80/">
+
+    
+    
+    
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    
+    <link rel="stylesheet" href="/css/hugo-theme-cleanwhite.min.css">
+
+    
+    <link rel="stylesheet" href="/css/zanshang.css">
+
+    
+    <link href="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@5.15.1/css/all.css" rel="stylesheet" type="text/css">
+
+    
+    
+
+    
+    <script src="/js/jquery.min.js"></script>
+
+    
+    <script src="/js/bootstrap.min.js"></script>
+
+    
+    <script src="/js/hux-blog.min.js"></script>
+
+    
+    
+
+</head>
+
+
+
+
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+
+    <div class="container-fluid">
+        
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Eyebrows White</a>
+        </div>
+
+        
+        
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">All Posts</a>
+                    </li>
+                    
+                        
+                        <li>
+                            <a href="/categories/frontend">frontend</a>
+                        </li>
+                        
+                    
+                    
+		    
+
+                    
+                </ul>
+            </div>
+        </div>
+        
+    </div>
+    
+</nav>
+<script>
+    
+    
+    
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        
+            $navbar.className = " ";
+            
+            setTimeout(function(){
+                
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+
+
+<style type="text/css">
+    header.intro-header {
+        background-image: url('/img/home-bg.jpg')
+    }
+</style>
+
+<header class="intro-header" >
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/source-code" title="source code">
+                            source code
+                        </a>
+                        
+                    </div>
+                    <h1>axios源码解析（一）</h1>
+                    <h2 class="subheading">主要逻辑梳理</h2>
+                    <span class="meta">
+                        
+                            Posted by 
+                            
+                                     EyebrowsWhite
+                             
+                            on 
+                            Tuesday, May 3, 2022
+                            
+                            
+                            
+                            
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+
+
+<article>
+    <div class="container">
+        <div class="row">
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                
+                <p>关于axios是什么，以及它的基本使用不在此赘述，可以参考<a href="https://axios-http.com/">axios官方文档</a>，非常的详细，这里主要针对axios的源码进行解析。本文撰写时的commit为<code>bc733fec78326609e751187c9d453cee9bf1993a</code></p>
+<h3 id="代码目录结构">代码目录结构</h3>
+<p>首先我们可以从<a href="https://github.com/axios/axios">axios的github仓库</a>获取到其源码，在深入代码之前，我们先看一下这个项目的目录结构：</p>
+<pre tabindex="0"><code>├── .github //github相关文件夹，包括issue模板、PR模板等
+├── dist //axios最新的版本文件，从npm、cdn等获取到的最新版本即是此处文件
+├── examples //axios官方给出的一些例子
+├── lib //最主要的源码部分
+├── sandbox //也是一个简单的例子，可以在sandbox中运行
+├── test //测试各种功能的代码
+├── .eslintrc.js //eslint配置文件
+├── .gitignore //git的忽略文件
+├── .npmignore //npm打包发布的忽略文件
+├── .travis.yml //travis流水线配置文件
+├── CHANGELOG.md //版本变更日志
+├── CODE_OF_CONDUCT.md //贡献者的一些公约
+├── COLLABORATOR_GUIDE.md //提issue、PR等的一些指南
+├── CONTRIBUTING.md //给想要参与贡献和开发人员的具体的技术指导
+├── COOKBOOK.md //axios配合其他库实现强大功能的示例
+├── ECOSYSTEM.md //axios的相关npm包
+├── Gruntfile.js //grunt（一个自动化工具）的配置文件
+├── LICENSE //开源协议
+├── README.md //仓库的说明
+├── SECURITY.md //漏洞上报的地址
+├── UPGRADE_GUIDE.md //版本升级的要点说明
+├── bower.json // bower（一个包管理器）配置文件
+├── index.d.ts // axios的ts类型说明
+├── index.js //仓库的入口文件
+├── karma.conf.js //karma（用来测试的工具）配置文件
+├── package-lock.json //npm配置文件
+├── package.json //npm配置文件
+├── tsconfig.json // ts配置文件
+├── tslint.json // tslint代码检查配置文件
+└── webpack.config.js //webpack配置文件
+</code></pre><p>从第一层的目录可以看出来，绝大多数的文件/文件夹是用来规范代码和优化流程的。而此次我们主要分析axios的核心源代码，因此我们主要看<code>lib</code>这一个文件夹，那么这个文件夹有什么内容呢？</p>
+<pre tabindex="0"><code>lib
+├── adapters/
+├── cancel/
+├── core/
+├── defaults/
+├── env/
+├── helpers/
+├── axios.js
+└── utils.js
+</code></pre><p>可以看到，<code>lib</code>文件夹的结构简单和紧凑很多，包含两个文件和六个文件夹，至于它们的作用我们边阅读源码边理解。</p>
+<h3 id="从入口顺藤摸瓜">从入口顺藤摸瓜</h3>
+<p>我们大致了解了项目的结构之后，就准备阅读源码。首先从入口下手，在第一层级的文件中找到整个仓库的入口即<code>index.js</code>，打开发现只有一行代码，<code>module.exports = require('./lib/axios');</code>，意味着真正的入口文件<code>lib</code>文件夹内，是项目的同名文件。</p>
+<p>打开这个文件，发现其内容也很少，只有64行，我们快速的阅读一下，不需要看细节，可以很明显的看到这个文件的核心内容是<code>createInstance</code>函数，其余的部分是在做一个模块的组合，是在给<code>axios</code>这个变量叠加buff。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-js" data-lang="js"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">function</span> createInstance(defaultConfig) {
+</span></span><span style="display:flex;"><span>  <span style="color:#8be9fd;font-style:italic">var</span> context <span style="color:#ff79c6">=</span> <span style="color:#ff79c6">new</span> Axios(defaultConfig);
+</span></span><span style="display:flex;"><span>  <span style="color:#8be9fd;font-style:italic">var</span> instance <span style="color:#ff79c6">=</span> bind(Axios.prototype.request, context);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// Copy axios.prototype to instance
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  utils.extend(instance, Axios.prototype, context);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// Copy context to instance
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  utils.extend(instance, context);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#6272a4">// Factory for creating new instances
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>  instance.create <span style="color:#ff79c6">=</span> <span style="color:#8be9fd;font-style:italic">function</span> create(instanceConfig) {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">return</span> createInstance(mergeConfig(defaultConfig, instanceConfig));
+</span></span><span style="display:flex;"><span>  };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">return</span> instance;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>代码注释写的非常清晰，这个函数首先创建了一个<code>Axios</code>的实例，然后对实例的属性进行对应的绑定，具体的绑定细节先不深入，最后的位置有一个工厂函数，目的是把<code>createInstance</code>函数暴露出去，允许通过调用<code>axios</code>的<code>create</code>方法再创建新的实例。</p>
+<p>这个函数中的核心<code>Axios</code>是什么呢？找到对应的文件<code>lib/core/Axios.js</code>打开，可以看到<code>Axios</code>也是一个函数，当然函数本质上也是对象<code>object</code>，它有几个属性，在这个文件占据最多篇幅的，也是最为关键的属性是<code>request</code>。axios这个包的目的就是去发送请求，我们可以使用类似<code>axios('/url')</code> 来发送请求并获取响应，再结合这个<code>Axios</code>函数的主体就是request方法，可以猜测这个函数应该是axios这个项目的核心逻辑函数。</p>
+<h3 id="分析request方法">分析request方法</h3>
+<p><code>Axios.request</code>也是一个函数，可以接受两个参数，从命名可以看出来，两个参数都是配置项，只是<code>url</code>这个配置项可以简写在第一个参数，<code>request</code>的前几行就是对两个参数进行合并。继续往下看这个函数的代码，有一个条件判断语句，如果给<code>transitional</code> 这个变量赋值就会执行一个操作，不赋值则继续，像这种不会影响函数整体逻辑的条件，我们先不去看赋值会如何，先记下来，忽略它，然后继续向下看。</p>
+<p><code>this.interceptors</code>这个属性是第一次用，从字面意思理解，这是一个拦截器，可以找到其赋值的位置，在<code>Axios</code>函数体中，有<code>request</code>和<code>response</code>两个属性，它们的初始值都是一样的<code>new InterceptorManager() </code>。回到<code>request</code>函数中，这里有一个<code>forEach</code>，它只接受了一个参数，且这个参数是一个函数，显然不是js中可迭代对象的那个<code>forEach</code>，也可以先不去管它。接着看<code>unshiftRequestInterceptors</code>，unshift代表会有元素被添加到数组的最前端，再看<code>pushResponseInterceptors</code>，push代表会有元素被添加到数组的最末端。那么这里的元素就是这两个函数的参数，其变量名就是拦截器。继续向下，又是一个条件判断，如果进入判断块最终会返回一个promise，request就结束了，否则会继续，我们依然忽略条件判断。这个请求拦截器的数组<code>requestInterceptorChain</code>如果有元素在其中就会进入while循环，同样，先继续。执行<code>dispatchRequest</code>，再判断响应拦截器的数组<code>responseInterceptorChain</code>有没有元素，没有的话返回一个promise，这个promise正是<code>dispatchRequest</code>的返回值。我们把所有的条件都忽略之后，关键的语句就是<code>dispantchRequest</code>这个函数了，我们找到其声明。</p>
+<p>上来有一个<code>throwIfCancellationRequested</code>，这是干什么的？可以看到它的函数声明就在上面，注释写了如果取消请求就抛出一个取消的错误，是一个错误抛出的函数，不影响主体逻辑，我们可以先不管。继续向下，会对配置中的data、headers等进行各种变换，最终返回的promise是<code>adapter</code>的执行结果的一个变换，成功的话返回格式化的response，否则返回格式化的reason。这个<code>adapter</code>，字面意思是适配器，如果没有传值的话就是默认的，我们找到默认的adapter。可以找到<code>getDefaultAdapter</code>这个很简单的函数，意思是adapter在不同的条件下会有不同的值，我们先看第一种可能性。</p>
+<p>找到<code>xhrAdapter</code>这个函数，它的返回值是一个promise，我们在<code>dispatchXhrRequest</code>这个函数中找到resolve和reject的位置，可以看到resolve只在一个位置出现，一个名为<code>settle</code>的函数内部，settle的上一层是一个名为<code>onloadend</code>的函数，而这个函数并未被显式执行，而是在一个条件判断中，如果<code>request</code>这个变量也有<code>onloadend</code>属性会将其值更改为此函数，否则会在另一个名为<code>handleLoad</code>的函数中处理，那么我们就要看这个<code>request</code>是什么？找到其定义，可以发现，其实<code>request</code>就是一个<code>XMLHttpRequest</code>对象，可以在<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest">MDN</a>上看到很详细的解释，这个onloadend其实是这个对象的一个事件，意味着请求结束。也就是说<code>dispatchXhrRequest</code>也即<code>xhrAdapter</code>这个函数成功被resolve的条件就是请求结束，有结束就一定有开始，那么这个请求是在什么时候被发出的呢？我们对源代码搜索可以找到，在新建<code>XMLHttpRequest</code>对象之后，马上就使用open方法初始化了一个请求，在最后将这个请求通过send方法发送出去。resolve看完之后，再看reject的情况，可以发现有很多地方可能会被reject，找到对应位置，然后对应到xhr的事件，可能的情况有请求被中止、请求出错、请求超时等等，对应各类异常。</p>
+<p>所以，从整体上看，这个适配器函数的工作就是创建一个xhr对象，然后发送请求，最后如果一切正常则resolve这个响应，否则reject。同样的我们可以打开<code>lib/adapters/http.js</code>这个文件，按照同样的方法进行梳理，工作目的和原理是一模一样的，只是将<code>XMLHttpRequest</code>  对象替换为了nodejs中的http模块，相关用法也进行了微调。</p>
+<p>由此，我们基本梳理了<code>lib/core/Axios.js</code>这个文件中<code>Axios</code>函数的<code>request</code>属性对应的方法的主要逻辑，就是通过判断当前环境是浏览器还是其他的js运行时（具体逻辑在<code>getDefaultAdapter</code>  函数中），然后将请求发送出去。</p>
+<p>结合axios的具体使用方法，以上的逻辑对应的就是，我们直接在项目通过诸如<code>axios('/url')</code>、<code>axios.post('/url', {method: 'post', body: {}})</code>等方法调用时，请求发出的逻辑。在浏览器环境下就是创建一个xhr对象并发出请求，然后接收响应；nodejs环境则是通过http类完成。很纯粹和基本的使用方法，不过axios在这个逻辑中帮我们增加了比较完善的错误处理机制。而axios还有一些强大的功能，就是我们在<code>Axios.request</code> 方法中忽略的几个条件判断，其中一个比较重要的叫做拦截器，它有什么作用呢，具体我们下篇来说。</p>
+<p>最后补充一下，axios如何实现能够通过直接调用<code>axios.post</code>、<code>axios.delete</code>等方法就直接指定了对应的请求method呢？可以在<code>lib/core/Axios.js</code>这个文件中找到，通过其自己定义的<code>utils.forEach</code>方法，进行一个转换，最终还是调用的request方法，实际上就是帮助用户写了一个快捷方式，能更方便的使用。这个函数中的核心方法就是<code>axios.request</code>。</p>
+
+
+                
+
+                <hr>
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/post/2020-09-05-vite_vs_webpack_vs_esbuild/" data-toggle="tooltip" data-placement="top" title="vite vs webpack vs esbuild">&larr;
+                            Previous Post</a>
+                    </li>
+                    
+                    
+                </ul>
+                
+
+            </div>
+
+            
+            
+            <div class="
+                col-lg-2 col-lg-offset-0
+                visible-lg-block
+                sidebar-container
+                catalog-container">
+                <div class="side-catalog">
+                    <hr class="hidden-sm hidden-xs">
+                    <h5>
+                        <a class="catalog-toggle" href="#">CATALOG</a>
+                    </h5>
+                    <ul class="catalog-body"></ul>
+                </div>
+            </div>
+            
+
+            
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                        
+                        
+                        
+                        <a href="/tags/bundler" title="bundler">
+                            bundler
+                        </a>
+                        
+                        
+                        
+                        
+                        
+                        
+                    </div>
+                </section>
+                
+
+                
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">                  
+                    
+                    <li>
+                        <a href="mailto:eyebrowswhite@gmail.com">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		           
+                    
+                    
+                    
+                    
+
+		            
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://github.com/EyebrowsWhite">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+		            
+                    
+                    
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://eyebrowkang.icu">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-medium fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://stackoverflow.com/users/14598318/eyebrowswhite">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a target="_blank" href="https://www.reddit.com/user/EyebrowsWhite">
+                            <span class="fa-stack fa-lg">
+                                <i class="fas fa-circle fa-stack-2x"></i>
+                                <i class="fab fa-reddit fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    
+            
+            
+            
+           
+                   <li>
+                       <a href='' rel="alternate" type="application/rss+xml" title="Eyebrows White" >
+                           <span class="fa-stack fa-lg">
+                               <i class="fas fa-circle fa-stack-2x"></i>
+                               <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
+                           </span>
+                       </a>
+                   </li>
+            
+             </ul>
+		<p class="copyright text-muted">
+                    Copyright &copy; Eyebrows White 2022
+                    <br>
+                    <a href="https://themes.gohugo.io/hugo-theme-cleanwhite">CleanWhite Hugo Theme</a> by <a href="https://zhaohuabing.com">Huabing</a> |
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="100px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=zhaohuabing&repo=hugo-theme-cleanwhite&type=star&count=true" >
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+
+
+<script>
+    function loadAsync(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+
+
+
+
+
+<script>
+    
+    if($('#tag_cloud').length !== 0){
+        loadAsync("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+
+<script>
+    loadAsync("https://cdn.jsdelivr.net/npm/fastclick@1.0.6/lib/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+    function generateCatalog(selector) {
+
+        
+        
+        
+        
+            _containerSelector = 'div.post-container'
+        
+
+        
+        var P = $(_containerSelector), a, n, t, l, i, c;
+        a = P.find('h1,h2,h3,h4,h5,h6');
+
+        
+        $(selector).html('')
+
+        
+        a.each(function () {
+            n = $(this).prop('tagName').toLowerCase();
+            i = "#" + $(this).prop('id');
+            t = $(this).text();
+            c = $('<a href="' + i + '" rel="nofollow">' + t + '</a>');
+            l = $('<li class="' + n + '_nav"></li>').append(c);
+            $(selector).append(l);
+        });
+        return true;
+    }
+
+    generateCatalog(".catalog-body");
+
+    
+    $(".catalog-toggle").click((function (e) {
+        e.preventDefault();
+        $('.side-catalog').toggleClass("fold")
+    }))
+
+    
+
+
+    loadAsync("\/js\/jquery.nav.js", function () {
+        $('.catalog-body').onePageNav({
+            currentClass: "active",
+            changeHash: !1,
+            easing: "swing",
+            filter: "",
+            scrollSpeed: 700,
+            scrollOffset: 0,
+            scrollThreshold: .2,
+            begin: null,
+            end: null,
+            scrollChange: null,
+            padding: 80
+        });
+    });
+</script>
+
+
+</body>
+</html>

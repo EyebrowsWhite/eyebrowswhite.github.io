@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>source code on Eyebrows White</title>
+    <link>https://eyebrowkang.blog/tags/source-code/</link>
+    <description>Recent content in source code on Eyebrows White</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 03 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/tags/source-code/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>axios源码解析（一）</title>
+      <link>https://eyebrowkang.blog/post/2022-05-03-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%80/</link>
+      <pubDate>Tue, 03 May 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://eyebrowkang.blog/post/2022-05-03-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%80/</guid>
+      <description>关于axios是什么，以及它的基本使用不在此赘述，可以参考axios官方文档，非常的详细，这里主要针对axios的源码进行解析。本文撰写时的</description>
+    </item>
+    
+  </channel>
+</rss>
