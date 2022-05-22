@@ -15,9 +15,9 @@
     
 
     
-    <meta name="title" content="" />
-    <meta property="og:title" content="" />
-    <meta property="twitter:title" content="" />
+    <meta name="title" content="axios源码解析（二）" />
+    <meta property="og:title" content="axios源码解析（二）" />
+    <meta property="twitter:title" content="axios源码解析（二）" />
     
 
     
@@ -34,9 +34,9 @@
     <meta name="keyword"  content="eyebrow, Eyebrows White, 博客, 个人网站, frontend, 前端">
     <link rel="shortcut icon" href="/img/favicon.ico">
 
-    <title>Categories-eyebrow&#39;s blog</title>
+    <title>axios源码解析（二）-eyebrow&#39;s blog</title>
 
-    <link rel="canonical" href="/categories/">
+    <link rel="canonical" href="/post/2022-05-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%BA%8C/">
 
     
     
@@ -142,14 +142,41 @@
 
 
 
-<header class="intro-header" style="background-image: url('/img/home-bg.jpg')">
+
+<style type="text/css">
+    header.intro-header {
+        background-image: url('/img/home-bg.jpg')
+    }
+</style>
+
+<header class="intro-header" >
+
     <div class="container">
         <div class="row">
-            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 ">
-                <div class="site-heading">
-                    <h1>Eyebrows White </h1>
-                    
-		    <span class="subheading">不忘初心，方得始终</span>
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/source-code" title="source code">
+                            source code
+                        </a>
+                        
+                    </div>
+                    <h1>axios源码解析（二）</h1>
+                    <h2 class="subheading">拦截器分析</h2>
+                    <span class="meta">
+                        
+                            Posted by 
+                            
+                                EyebrowsWhite
+                             
+                            on 
+                            Monday, May 16, 2022
+                            
+                            
+                            
+                            
+                    </span>
                 </div>
             </div>
         </div>
@@ -162,17 +189,67 @@
 <article>
     <div class="container">
         <div class="row">
+
             
             <div class="
                 col-lg-8 col-lg-offset-2
                 col-md-10 col-md-offset-1
                 post-container">
 
-         	
+                
+                <p>下面我们来研究一下拦截器是什么？还是<code>lib/core/Axios</code>这个文件的同名函数中，我们在进行整体梳理的时候刻意忽略了一些条件语句中的内容，其中一部分是interceptors，中文为拦截器，这个属性的初始化是在最开始的函数体内部，通过new这个操作符创建了一个InterceptorManager的实例，那么我们就先看看这个函数里面是什么样子的。</p>
+<h3 id="拦截器长什么样子">拦截器长什么样子</h3>
+<p>打开<code>lib/core/InterceptorManager.js</code>这个文件，可以看到是非常简单的一个函数，函数体内只有一个<code>handlers</code>属性，初始值是一个空数组，下面是三个添加到函数原型上的方法。</p>
+<p>首先是<code>use</code>方法，接收三个参数，结合上面的注释可以看出来这个方法是将一个对象推入<code>handlers</code>数组，然后返回一个数字，这个数字就是对象的index，而这个对象中有四个键值对，其中前两个分别用于处理Promise成功和失败的情况，<code>synchronous</code>字面理解是用于判断是否同步，而<code>runWhen</code>看不出来，先继续向下看。</p>
+<p>然后是<code>eject</code>方法，这个方法只接收一个参数，就是前面use方法的返回值，即push进数组的那个对象的index，如果这个对象还存在就将其置为null，相当于移除掉了它。</p>
+<p>最后是<code>forEach</code>方法，由于这里面引用了自定义的工具函数<code>utils.forEach</code>，所以我们要跳转过去简单看下这个函数，它接收两个参数，主要逻辑在最后一个if else语句中，如果第一个参数是数组，就对其进行遍历，每遍历一次就执行一次第二个参数传入的函数，并且给这个函数传入三个参数，分别是当前元素，当前元素的index，当前数组；经过前两个if块的筛选之后，如果说第一个参数不是数组，那么它就是一个对象，同样对这个对象进行迭代，也是每迭代一次执行一次fn，fn的三个参数分别是当前键值对的值，当前键值对的键，和对象自身。下面回到拦截器的forEach方法，它接收一个函数，然后对handlers进行遍历，如果h也就是遍历的当前元素是存在的，也即没有被eject，那么就以这个元素为唯一参数执行传入的函数。这个元素一定是通过use方法push进来的那个具有四个键值对的对象。</p>
+<h3 id="拦截器如何处理请求">拦截器如何处理请求</h3>
+<p>我们可以通过查看<a href="https://axios-http.com/docs/interceptors">官方示例</a>来了解拦截器最简单的使用方法，可以看到，通过use方法添加拦截器，两个函数<code>fulfilled</code>和<code>rejected</code>对应请求发出前和请求出错时的处理情况，通过eject方法来移除对应的拦截器。到这里，我们大概可以明白，拦截器是用于在请求发出前对请求进行一个处理，那么具体怎么处理呢？</p>
+<h4 id="处理用户添加的拦截器">处理用户添加的拦截器</h4>
+<p>我们回到源码，<code>lib/core/Axios.js</code>文件中，找到<code>requestInterceptorChain</code>这里，这是我们上篇文章略过的地方之一，下面我们看下代码。</p>
+<p>请求拦截器的处理：开头定义了两个变量，<code>requestInterceptorChain</code>是一个空数组，<code>synchronousRequestInterceptors</code>是一个初始值为true的布尔类型变量。接着调用了拦截器的forEach方法，这会对<code>handlers</code>数组中（通过use方法添加）的所有拦截器进行遍历，如果这个拦截器存在(没有被eject)，将以其为参数执行<code>unshiftRequestInterceptors</code>函数。我们看这个函数的内容，可以通过if判断中的条件推测出来，runWhen类似一个检测函数，这个函数默认是不存在的，如果你设置了runWhen函数，并且你的配置项不能通过检测，那么在这里拦截器就不会被添加到<code>requestInterceptorChain</code>数组中，也就相当于没有设置拦截器。由于上篇文章就是按照没有拦截器梳理的，我们下面按照拦截器存在来继续看，接着是<code>synchronousRequestInterceptors</code>变量，保持了和当前拦截器中的<code>synchronous</code>属性一致，默认为false即异步，最后将这个拦截器的fulfilled方法和rejected方法依此添加到<code>requestInterceptorChain</code>数组的开头，也就是说如果你设置了多个拦截器，那么最后设置的拦截器会在<code>requestInterceptorChain</code>数组的最前方。例如，你依次添加了interceptors1, interceptors2两个拦截器，那么，在<code>requestInterceptorChain</code>数组中元素依次是interceptors2.fulfilled, interceptors2.rejected, interceptors1.fulfilled, interceptor1.rejected。</p>
+<p>响应拦截器的处理：比请求拦截器更简单些，没有条件判断和同步异步的区分，所有的响应拦截器的fulfilled和rejected方法都会被添加到<code>responseInterceptorChain</code>数组中，有一点不同是，这里使用的push方法，即最后设置的拦截器会在<code>responseInterceptorChain</code>数组的最末端。</p>
+<h4 id="使用拦截器">使用拦截器</h4>
+<p>上面相当于对用户添加的请求和响应拦截器进行了一个处理，筛选出可用的，并按照合适的方式放好，接着就该使用这些拦截器了。接着看源码，如果请求拦截器是异步的，那么请求拦截器的响应拦截器会被拼接到同一个数组中，在前端是请求拦截器，后端是响应拦截器，中间是两个元素，第一个正是上节课也接触到了的<code>dispatchRequest</code>函数，第二个是undefined。那么现在这个名为chain的数组中每两个元素为一对，刚好对应promise.then的fulfilled和rejected，比如中间的两个元素中，dispatchRequest对应fulfilled，undefined对应rejected。接着会制作一个一定resolve为config的promise，依次执行这些promise的回调函数，并且每执行一次会弹出对应的两个函数，直到chain数组中没有元素存在，然后直接返回最后一次执行的promise，请求结束。</p>
+<p>那么如果请求拦截器是同步的呢？原理是类似的，只不过同步的方法需要通过<code>try...catch...</code>来对配置进行处理，先使用请求拦截器，然后发送请求，最后用上面一样的异步的方法处理响应拦截器，注意前面有提到过，响应拦截器没有同步异步标志，都按照异步处理。最终返回拦截器处理之后的promise。</p>
+<p>通过设置请求拦截器可以对请求进行一个批处理，比如想要在每次请求发出前打印出URL和参数到控制台，那么可以设置一个请求拦截器，只需要写一次<code>console</code>语句，而不必每次发请求都写。假如你想对响应的错误进行统一处理，那么可以设置一个响应拦截器，比如http状态码不是200就将响应拦截，而不让错误传递到业务逻辑代码中。</p>
+<h3 id="拦截器回顾">拦截器回顾</h3>
+<p>所谓拦截器就是一个对象，其中有两个属性是必须的，<code>fulfilled</code>和<code>rejected</code>，分别对应拦截器的前一个promise执行成功和失败的处理函数，另外两个属性，一个<code>synchronous</code>用于标识拦截器是否异步，一个<code>runWhen</code>方法用于检测这次请求是否要使用拦截器。然后就是拦截器的执行顺序，请求拦截器后设置的先执行，响应拦截器后设置的后执行。最后有一点，前文没有点明，请求拦截器处理的是config，而响应拦截器处理的是response，其原因是中间的<code>dispatchRequest</code>将请求发送出去之后返回的对象是response。下面一篇文章我们来看axios是如何处理错误和取消请求的。</p>
+
+
                 
 
+                <hr>
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/post/2022-05-03-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%80/" data-toggle="tooltip" data-placement="top" title="axios源码解析（一）">&larr;
+                            Previous Post</a>
+                    </li>
+                    
+                    
+                </ul>
+                
 
             </div>
+
+            
+            
+            <div class="
+                col-lg-2 col-lg-offset-0
+                visible-lg-block
+                sidebar-container
+                catalog-container">
+                <div class="side-catalog">
+                    <hr class="hidden-sm hidden-xs">
+                    <h5>
+                        <a class="catalog-toggle" href="#">CATALOG</a>
+                    </h5>
+                    <ul class="catalog-body"></ul>
+                </div>
+            </div>
+            
+
             
             <div class="
                 col-lg-8 col-lg-offset-2
@@ -189,7 +266,7 @@
                         
                         
                         <a href="/tags/bundler" title="bundler">
-                        bundler
+                            bundler
                         </a>
                         
                         
@@ -197,7 +274,7 @@
                         
                         
                         <a href="/tags/source-code" title="source-code">
-                        source-code
+                            source-code
                         </a>
                         
                         
@@ -288,7 +365,7 @@
             
            
                    <li>
-                       <a href='/categories/index.xml' rel="alternate" type="application/rss+xml" title="Eyebrows White" >
+                       <a href='' rel="alternate" type="application/rss+xml" title="Eyebrows White" >
                            <span class="fa-stack fa-lg">
                                <i class="fas fa-circle fa-stack-2x"></i>
                                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>

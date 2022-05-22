@@ -6,7 +6,16 @@
     <description>Recent content in Posts on Eyebrows White</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 03 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>axios源码解析（二）</title>
+      <link>https://eyebrowkang.blog/post/2022-05-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%BA%8C/</link>
+      <pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://eyebrowkang.blog/post/2022-05-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%BA%8C/</guid>
+      <description>下面我们来研究一下拦截器是什么？还是lib/core/Axios这个文件的同名函数中，我们在进行整体梳理的时候刻意忽略了一些条件语句中的内容</description>
+    </item>
+    
     <item>
       <title>axios源码解析（一）</title>
       <link>https://eyebrowkang.blog/post/2022-05-03-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%80/</link>
