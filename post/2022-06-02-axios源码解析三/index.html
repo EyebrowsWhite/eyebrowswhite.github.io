@@ -15,9 +15,9 @@
     
 
     
-    <meta name="title" content="axios源码解析（二）" />
-    <meta property="og:title" content="axios源码解析（二）" />
-    <meta property="twitter:title" content="axios源码解析（二）" />
+    <meta name="title" content="axios源码解析（三）" />
+    <meta property="og:title" content="axios源码解析（三）" />
+    <meta property="twitter:title" content="axios源码解析（三）" />
     
 
     
@@ -34,9 +34,9 @@
     <meta name="keyword"  content="eyebrow, Eyebrows White, 博客, 个人网站, frontend, 前端">
     <link rel="shortcut icon" href="/img/favicon.ico">
 
-    <title>axios源码解析（二）-eyebrow&#39;s blog</title>
+    <title>axios源码解析（三）-eyebrow&#39;s blog</title>
 
-    <link rel="canonical" href="/post/2022-05-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%BA%8C/">
+    <link rel="canonical" href="/post/2022-06-02-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%89/">
 
     
     
@@ -162,16 +162,16 @@
                         </a>
                         
                     </div>
-                    <h1>axios源码解析（二）</h1>
-                    <h2 class="subheading">拦截器分析</h2>
+                    <h1>axios源码解析（三）</h1>
+                    <h2 class="subheading">中止请求与错误处理</h2>
                     <span class="meta">
                         
                             Posted by 
                             
-                                EyebrowsWhite
+                                     EyebrowsWhite
                              
                             on 
-                            Monday, May 16, 2022
+                            Tuesday, June 7, 2022
                             
                             
                             
@@ -197,24 +197,33 @@
                 post-container">
 
                 
-                <p>下面我们来研究一下拦截器是什么？还是<code>lib/core/Axios</code>这个文件的同名函数中，我们在进行整体梳理的时候刻意忽略了一些条件语句中的内容，其中一部分是interceptors，中文为拦截器，这个属性的初始化是在最开始的函数体内部，通过new这个操作符创建了一个InterceptorManager的实例，那么我们就先看看这个函数里面是什么样子的。</p>
-<h3 id="拦截器长什么样子">拦截器长什么样子</h3>
-<p>打开<code>lib/core/InterceptorManager.js</code>这个文件，可以看到是非常简单的一个函数，函数体内只有一个<code>handlers</code>属性，初始值是一个空数组，下面是三个添加到函数原型上的方法。</p>
-<p>首先是<code>use</code>方法，接收三个参数，结合上面的注释可以看出来这个方法是将一个对象推入<code>handlers</code>数组，然后返回一个数字，这个数字就是对象的index，而这个对象中有四个键值对，其中前两个分别用于处理Promise成功和失败的情况，<code>synchronous</code>字面理解是用于判断是否同步，而<code>runWhen</code>看不出来，先继续向下看。</p>
-<p>然后是<code>eject</code>方法，这个方法只接收一个参数，就是前面use方法的返回值，即push进数组的那个对象的index，如果这个对象还存在就将其置为null，相当于移除掉了它。</p>
-<p>最后是<code>forEach</code>方法，由于这里面引用了自定义的工具函数<code>utils.forEach</code>，所以我们要跳转过去简单看下这个函数，它接收两个参数，主要逻辑在最后一个if else语句中，如果第一个参数是数组，就对其进行遍历，每遍历一次就执行一次第二个参数传入的函数，并且给这个函数传入三个参数，分别是当前元素，当前元素的index，当前数组；经过前两个if块的筛选之后，如果说第一个参数不是数组，那么它就是一个对象，同样对这个对象进行迭代，也是每迭代一次执行一次fn，fn的三个参数分别是当前键值对的值，当前键值对的键，和对象自身。下面回到拦截器的forEach方法，它接收一个函数，然后对handlers进行遍历，如果h也就是遍历的当前元素是存在的，也即没有被eject，那么就以这个元素为唯一参数执行传入的函数。这个元素一定是通过use方法push进来的那个具有四个键值对的对象。</p>
-<h3 id="拦截器如何处理请求">拦截器如何处理请求</h3>
-<p>我们可以通过查看<a href="https://axios-http.com/docs/interceptors">官方示例</a>来了解拦截器最简单的使用方法，可以看到，通过use方法添加拦截器，两个函数<code>fulfilled</code>和<code>rejected</code>对应请求发出前和请求出错时的处理情况，通过eject方法来移除对应的拦截器。到这里，我们大概可以明白，拦截器是用于在请求发出前对请求进行一个处理，那么具体怎么处理呢？</p>
-<h4 id="处理用户添加的拦截器">处理用户添加的拦截器</h4>
-<p>我们回到源码，<code>lib/core/Axios.js</code>文件中，找到<code>requestInterceptorChain</code>这里，这是我们上篇文章略过的地方之一，下面我们看下代码。</p>
-<p>请求拦截器的处理：开头定义了两个变量，<code>requestInterceptorChain</code>是一个空数组，<code>synchronousRequestInterceptors</code>是一个初始值为true的布尔类型变量。接着调用了拦截器的forEach方法，这会对<code>handlers</code>数组中（通过use方法添加）的所有拦截器进行遍历，如果这个拦截器存在(没有被eject)，将以其为参数执行<code>unshiftRequestInterceptors</code>函数。我们看这个函数的内容，可以通过if判断中的条件推测出来，runWhen类似一个检测函数，这个函数默认是不存在的，如果你设置了runWhen函数，并且你的配置项不能通过检测，那么在这里拦截器就不会被添加到<code>requestInterceptorChain</code>数组中，也就相当于没有设置拦截器。由于上篇文章就是按照没有拦截器梳理的，我们下面按照拦截器存在来继续看，接着是<code>synchronousRequestInterceptors</code>变量，保持了和当前拦截器中的<code>synchronous</code>属性一致，默认为false即异步，最后将这个拦截器的fulfilled方法和rejected方法依此添加到<code>requestInterceptorChain</code>数组的开头，也就是说如果你设置了多个拦截器，那么最后设置的拦截器会在<code>requestInterceptorChain</code>数组的最前方。例如，你依次添加了interceptors1, interceptors2两个拦截器，那么，在<code>requestInterceptorChain</code>数组中元素依次是interceptors2.fulfilled, interceptors2.rejected, interceptors1.fulfilled, interceptor1.rejected。</p>
-<p>响应拦截器的处理：比请求拦截器更简单些，没有条件判断和同步异步的区分，所有的响应拦截器的fulfilled和rejected方法都会被添加到<code>responseInterceptorChain</code>数组中，有一点不同是，这里使用的push方法，即最后设置的拦截器会在<code>responseInterceptorChain</code>数组的最末端。</p>
-<h4 id="使用拦截器">使用拦截器</h4>
-<p>上面相当于对用户添加的请求和响应拦截器进行了一个处理，筛选出可用的，并按照合适的方式放好，接着就该使用这些拦截器了。接着看源码，如果请求拦截器是异步的，那么请求拦截器的响应拦截器会被拼接到同一个数组中，在前端是请求拦截器，后端是响应拦截器，中间是两个元素，第一个正是上节课也接触到了的<code>dispatchRequest</code>函数，第二个是undefined。那么现在这个名为chain的数组中每两个元素为一对，刚好对应promise.then的fulfilled和rejected，比如中间的两个元素中，dispatchRequest对应fulfilled，undefined对应rejected。接着会制作一个一定resolve为config的promise，依次执行这些promise的回调函数，并且每执行一次会弹出对应的两个函数，直到chain数组中没有元素存在，然后直接返回最后一次执行的promise，请求结束。</p>
-<p>那么如果请求拦截器是同步的呢？原理是类似的，只不过同步的方法需要通过<code>try...catch...</code>来对配置进行处理，先使用请求拦截器，然后发送请求，最后用上面一样的异步的方法处理响应拦截器，注意前面有提到过，响应拦截器没有同步异步标志，都按照异步处理。最终返回拦截器处理之后的promise。</p>
-<p>通过设置请求拦截器可以对请求进行一个批处理，比如想要在每次请求发出前打印出URL和参数到控制台，那么可以设置一个请求拦截器，只需要写一次<code>console</code>语句，而不必每次发请求都写。假如你想对响应的错误进行统一处理，那么可以设置一个响应拦截器，比如http状态码不是200就将响应拦截，而不让错误传递到业务逻辑代码中。</p>
-<h3 id="拦截器回顾">拦截器回顾</h3>
-<p>所谓拦截器就是一个对象，其中有两个属性是必须的，<code>fulfilled</code>和<code>rejected</code>，分别对应拦截器的前一个promise执行成功和失败的处理函数，另外两个属性，一个<code>synchronous</code>用于标识拦截器是否异步，一个<code>runWhen</code>方法用于检测这次请求是否要使用拦截器。然后就是拦截器的执行顺序，请求拦截器后设置的先执行，响应拦截器后设置的后执行。最后有一点，前文没有点明，请求拦截器处理的是config，而响应拦截器处理的是response，其原因是中间的<code>dispatchRequest</code>将请求发送出去之后返回的对象是response。下面一篇文章我们来看axios是如何处理错误和取消请求的。</p>
+                <p>本篇我们来看一下axios如何中止请求的发送，axios自<code>v0.22.0</code>版本开始，支持了<code>AbortController</code>API，而<code>CancelToken</code>则被列入待废弃列表，我们主要对新版本的API进行讲解，旧有的API则不再进行讲解，实际上二者是类似的。开头先啰嗦一下中止请求发送的使用场景，对于比较简单的应用一般可能用不到，但是当一个网页发送的请求比较多的时候，就会需要了，这里就举一个例子。比如一个页面加载显示了部分内容，另有一部分的请求发送出去了，还没有响应，这时用户跳转到了另外的路由，那么这些未响应的请求实际上是不需要再响应了的，所以此时可以在路由跳转的部分设置取消请求的逻辑，避免旧路由页面拖慢了新路由页面的请求响应速度。</p>
+<h3 id="abortcontroller-api简介">AbortController API简介</h3>
+<p>这个API详细的文档在<a href="https://developer.mozilla.org/en-US/docs/Web/API/AbortController">这里</a>，除了IE之外的大多浏览器都很好的支持了此API，并且在nodejs 15.0版本也得到了支持，相较于<code>CancelToken</code>使用更加简单。在创建一个<code>AbortController</code>实例之后，可以在通过<code>fetch</code>API(其他方法也可以使用，但需要自己配置)发送请求时附带一个实例的signal属性值，然后在请求响应之前通过调用实例的abort 方法就可以中止这个请求。这其中关键部分是这个signal属性，它是<code>AbortSignal</code>对象的一个实例，这个对象有两个属性，一个是aborted，布尔值，用于表明当前的请求是否处于中止状态；另一个是reason，在前者为true的情况下，用于表示中止的原因。这两个属性都是只读的，也就是说，我们无法直接对属性进行赋值，只能通过调用abort方法来改变<code>signal.aborted</code>的值，再通过判断此值来决定是否终止请求。</p>
+<h3 id="何处何时中止请求">何处/何时中止请求</h3>
+<p>了解axios在何处可能会中止请求，对于我们使用这个功能有很大的帮助。首先看一下axios如何使用这个API，由于<a href="https://axios-http.com/docs">官方文档</a>可能并未实时更新，我们可以在根目录下的<code>index.d.ts</code>文件中找到关于signal的配置项，可以看出，这和在fetch API中的使用是一样的。那么在axios内部是怎样的逻辑呢？通过前面几篇的了解，可以知道axios的请求发送过程大致可以分为以下几个部分：</p>
+<ol>
+<li>请求拦截器 request InterceptorManager</li>
+<li>发送请求 dispatchRequest</li>
+<li>请求适配器 adaptor</li>
+<li>请求发送 send / request</li>
+<li>请求响应 response</li>
+<li>响应格式化 transform</li>
+<li>响应拦截器 response InterceptorManager</li>
+</ol>
+<p>上一篇分析了axios的拦截器，这个模块实际上是对请求的配置进行处理，并不会涉及真正的请求发送，所以自然也就没有中止请求一说。而在拦截器之后，将会进入到<code>dispatchRequest</code>函数内，函数一开头，我们可以看到一个名为<code>throwIfCancellationRequested</code>的函数，其函数体非常简单，就是判断配置中是否存在signal属性，如果存在并且signal的aborted属性是true那么就会抛出一个请求取消的错误。也就是说，如果你在请求拦截器处理完成之前取消请求，那么请求会在进入dispatchRequest函数的第一时间中止请求的发送。</p>
+<p>那如果中止请求的时候已经执行完请求拦截器的内容了呢？继续看这个函数，处理完配置之后将会进入适配器，这里我们仍旧以xhr请求为例，在创建xhr对象之后，会监听这个对象的abort事件，需要注意，这个并非<code>AbortController</code>API的事件，而是XHR对象的，我们并不会直接调用它，而是通过<code>AbortController</code>API来操作，具体我们继续向下看源码。</p>
+<p>如果配置了signal或cancelToken，那么将进入一个if的代码块，这里我们可以看到，如果代码运行到此处时，请求已经被中止了，那么则马上中止请求并抛出错误，而如果没有被中止的话，将会为signal添加一个abort事件的监听器，一旦监听到signal的状态变化为中止状态，则马上执行<code>onCanceled</code>函数，也即手动调用XHR对象的abort方法，中止请求。既然有添加监听器，那么一定有移除它，我们可以找到，移除它的位置时在done函数内部，这个函数将会在响应正常返回或异常报错时执行，也即响应完成时会移除此监听。以上可以了解到，当执行到适配器内部时，只要响应没有返回，在任意时刻都能够中止请求。</p>
+<p>那么至此是否已经结束了呢？毕竟请求都已经响应了。实际上并没有， 因为axios还存在一个格式化响应对象和执行响应拦截器的步骤，因此如果如果响应在格式化之前被中止，同样可以成功中止请求。这部分的代码可以在<code>dispatchRequest</code>函数内，<code>adaptor.then</code>的<code>onAdapterResolution</code>回调函数中看到。</p>
+<p>简单梳理一下，当请求发送出去之后，响应格式化之前，任意时刻都可以成功中止请求，而一旦响应已经被格式化了，那么它将被正常返回。由于请求响应到格式化的事件几乎可以忽略，因此我们可以认为，成功中止请求一般要在响应返回之前进行。axios会在请求拦截器执行完毕、请求适配器执行的任意位置、请求响应之后格式化之前这三个位置进行检测，确保请求能够被及时中止。</p>
+<h3 id="axios错误处理">axios错误处理</h3>
+<p>除了<a href="https://axios-http.com/docs/handling_errors">文档</a>中最基本的错误捕获之外，我们还应当知道axios存在有哪些错误类型，在什么位置会出什么样的错误，使用起来更加得心应手。</p>
+<p>首先打开<code>lib/core/AxiosError.js</code>，这里定义了一个基本的AxiosError，首先你需要简单了解一下js中的<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error">Error</a>对象以及我们一起来看一下<code>utils.inherits</code>方法。它将第一个参数（构造函数）的原型指向第二个参数（构造函数）的原型，然后，第一个参数将其原型的构造函数指向自身，最后将可能存在的一些属性也附加到自身的原型上，这一系列操作实际上就是一个继承的过程。</p>
+<p>再返回到AxiosError文件中来，对于Error对象进行更改和增加部分属性值，然后完成继承的操作，同时为AxiosError增加一个内置方法<code>toJSON</code>，方便用户输出或记录错误详情。之后再继续对AxiosError对象进行完善，定义对应的错误码，以及用于识别错误实例是否属于Axios定制Error的<code>isAxiosError</code>属性，最后的<code>Axios.from</code>实际上和前面的继承操作类似，用于将一个Error对象转化为一个AxiosError对象。</p>
+<p>我们来看一下AxiosError是怎么用的，还是xhr适配器中，我们可以看到有几种错误，当请求中止时，会有<code>Request aborted</code>，当请求出现错误时会有<code>Network Error</code>，还有超时导致的错误、协议不被支持的错误；可以在lib文件夹中搜到很多AxiosError的用法，可以对不同位置的不同错误码进行简单了解，同时还应当善于使用前面提到的<code>toJSON</code>方法，这可以让我们更清晰和方便的看和记录错误，然后进行深入的原因分析。</p>
+<p>当然了，你也可以自己创建AxiosError，或者继承它创建一个新的构造函数，用于统一网络请求处的各种错误格式，比如取消请求的<code>CanceledError</code>就是继承自<code>AxiosError</code>。</p>
+<h3 id="总结">总结</h3>
+<p>对于中止请求，我们在页面复杂的情况下要善于使用，提升页面的性能；对于错误处理，我们要善于利用<code>AxiosError</code>的自定义方法的属性，用于快速识别错误类型以及记录错误，提升分析错误和解决错误的效率。至此，<code>Axios</code>核心的一些源码就简单讲解完了，下一篇文章我们将对Axios的其他配置的部分和一些工具函数进行简单的分析。</p>
 
 
                 
@@ -223,15 +232,10 @@
                 <ul class="pager">
                     
                     <li class="previous">
-                        <a href="/post/2022-05-03-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%80/" data-toggle="tooltip" data-placement="top" title="axios源码解析（一）">&larr;
+                        <a href="/post/2022-05-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%BA%8C/" data-toggle="tooltip" data-placement="top" title="axios源码解析（二）">&larr;
                             Previous Post</a>
                     </li>
                     
-                    
-                    <li class="next">
-                        <a href="/post/2022-06-02-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%89/" data-toggle="tooltip" data-placement="top" title="axios源码解析（三）">Next
-                            Post &rarr;</a>
-                    </li>
                     
                 </ul>
                 
