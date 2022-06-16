@@ -15,9 +15,9 @@
     
 
     
-    <meta name="title" content="axios源码解析（三）" />
-    <meta property="og:title" content="axios源码解析（三）" />
-    <meta property="twitter:title" content="axios源码解析（三）" />
+    <meta name="title" content="axios源码解析（四）" />
+    <meta property="og:title" content="axios源码解析（四）" />
+    <meta property="twitter:title" content="axios源码解析（四）" />
     
 
     
@@ -34,9 +34,9 @@
     <meta name="keyword"  content="eyebrow, Eyebrows White, 博客, 个人网站, frontend, 前端">
     <link rel="shortcut icon" href="/img/favicon.ico">
 
-    <title>axios源码解析（三）-eyebrow&#39;s blog</title>
+    <title>axios源码解析（四）-eyebrow&#39;s blog</title>
 
-    <link rel="canonical" href="/post/2022-06-02-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%89/">
+    <link rel="canonical" href="/post/2022-06-08-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E5%9B%9B/">
 
     
     
@@ -162,8 +162,8 @@
                         </a>
                         
                     </div>
-                    <h1>axios源码解析（三）</h1>
-                    <h2 class="subheading">中止请求与错误处理</h2>
+                    <h1>axios源码解析（四）</h1>
+                    <h2 class="subheading">高级配置</h2>
                     <span class="meta">
                         
                             Posted by 
@@ -171,7 +171,7 @@
                                      EyebrowsWhite
                              
                             on 
-                            Tuesday, June 7, 2022
+                            Wednesday, June 8, 2022
                             
                             
                             
@@ -197,33 +197,19 @@
                 post-container">
 
                 
-                <p>本篇我们来看一下axios如何中止请求的发送，axios自<code>v0.22.0</code>版本开始，支持了<code>AbortController</code>API，而<code>CancelToken</code>则被列入待废弃列表，我们主要对新版本的API进行讲解，旧有的API则不再进行讲解，实际上二者是类似的。开头先啰嗦一下中止请求发送的使用场景，对于比较简单的应用一般可能用不到，但是当一个网页发送的请求比较多的时候，就会需要了，这里就举一个例子。比如一个页面加载显示了部分内容，另有一部分的请求发送出去了，还没有响应，这时用户跳转到了另外的路由，那么这些未响应的请求实际上是不需要再响应了的，所以此时可以在路由跳转的部分设置取消请求的逻辑，避免旧路由页面拖慢了新路由页面的请求响应速度。</p>
-<h3 id="abortcontroller-api简介">AbortController API简介</h3>
-<p>这个API详细的文档在<a href="https://developer.mozilla.org/en-US/docs/Web/API/AbortController">这里</a>，除了IE之外的大多浏览器都很好的支持了此API，并且在nodejs 15.0版本也得到了支持，相较于<code>CancelToken</code>使用更加简单。在创建一个<code>AbortController</code>实例之后，可以在通过<code>fetch</code>API(其他方法也可以使用，但需要自己配置)发送请求时附带一个实例的signal属性值，然后在请求响应之前通过调用实例的abort 方法就可以中止这个请求。这其中关键部分是这个signal属性，它是<code>AbortSignal</code>对象的一个实例，这个对象有两个属性，一个是aborted，布尔值，用于表明当前的请求是否处于中止状态；另一个是reason，在前者为true的情况下，用于表示中止的原因。这两个属性都是只读的，也就是说，我们无法直接对属性进行赋值，只能通过调用abort方法来改变<code>signal.aborted</code>的值，再通过判断此值来决定是否终止请求。</p>
-<h3 id="何处何时中止请求">何处/何时中止请求</h3>
-<p>了解axios在何处可能会中止请求，对于我们使用这个功能有很大的帮助。首先看一下axios如何使用这个API，由于<a href="https://axios-http.com/docs">官方文档</a>可能并未实时更新，我们可以在根目录下的<code>index.d.ts</code>文件中找到关于signal的配置项，可以看出，这和在fetch API中的使用是一样的。那么在axios内部是怎样的逻辑呢？通过前面几篇的了解，可以知道axios的请求发送过程大致可以分为以下几个部分：</p>
-<ol>
-<li>请求拦截器 request InterceptorManager</li>
-<li>发送请求 dispatchRequest</li>
-<li>请求适配器 adaptor</li>
-<li>请求发送 send / request</li>
-<li>请求响应 response</li>
-<li>响应格式化 transform</li>
-<li>响应拦截器 response InterceptorManager</li>
-</ol>
-<p>上一篇分析了axios的拦截器，这个模块实际上是对请求的配置进行处理，并不会涉及真正的请求发送，所以自然也就没有中止请求一说。而在拦截器之后，将会进入到<code>dispatchRequest</code>函数内，函数一开头，我们可以看到一个名为<code>throwIfCancellationRequested</code>的函数，其函数体非常简单，就是判断配置中是否存在signal属性，如果存在并且signal的aborted属性是true那么就会抛出一个请求取消的错误。也就是说，如果你在请求拦截器处理完成之前取消请求，那么请求会在进入dispatchRequest函数的第一时间中止请求的发送。</p>
-<p>那如果中止请求的时候已经执行完请求拦截器的内容了呢？继续看这个函数，处理完配置之后将会进入适配器，这里我们仍旧以xhr请求为例，在创建xhr对象之后，会监听这个对象的abort事件，需要注意，这个并非<code>AbortController</code>API的事件，而是XHR对象的，我们并不会直接调用它，而是通过<code>AbortController</code>API来操作，具体我们继续向下看源码。</p>
-<p>如果配置了signal或cancelToken，那么将进入一个if的代码块，这里我们可以看到，如果代码运行到此处时，请求已经被中止了，那么则马上中止请求并抛出错误，而如果没有被中止的话，将会为signal添加一个abort事件的监听器，一旦监听到signal的状态变化为中止状态，则马上执行<code>onCanceled</code>函数，也即手动调用XHR对象的abort方法，中止请求。既然有添加监听器，那么一定有移除它，我们可以找到，移除它的位置时在done函数内部，这个函数将会在响应正常返回或异常报错时执行，也即响应完成时会移除此监听。以上可以了解到，当执行到适配器内部时，只要响应没有返回，在任意时刻都能够中止请求。</p>
-<p>那么至此是否已经结束了呢？毕竟请求都已经响应了。实际上并没有， 因为axios还存在一个格式化响应对象和执行响应拦截器的步骤，因此如果如果响应在格式化之前被中止，同样可以成功中止请求。这部分的代码可以在<code>dispatchRequest</code>函数内，<code>adaptor.then</code>的<code>onAdapterResolution</code>回调函数中看到。</p>
-<p>简单梳理一下，当请求发送出去之后，响应格式化之前，任意时刻都可以成功中止请求，而一旦响应已经被格式化了，那么它将被正常返回。由于请求响应到格式化的事件几乎可以忽略，因此我们可以认为，成功中止请求一般要在响应返回之前进行。axios会在请求拦截器执行完毕、请求适配器执行的任意位置、请求响应之后格式化之前这三个位置进行检测，确保请求能够被及时中止。</p>
-<h3 id="axios错误处理">axios错误处理</h3>
-<p>除了<a href="https://axios-http.com/docs/handling_errors">文档</a>中最基本的错误捕获之外，我们还应当知道axios存在有哪些错误类型，在什么位置会出什么样的错误，使用起来更加得心应手。</p>
-<p>首先打开<code>lib/core/AxiosError.js</code>，这里定义了一个基本的AxiosError，首先你需要简单了解一下js中的<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error">Error</a>对象以及我们一起来看一下<code>utils.inherits</code>方法。它将第一个参数（构造函数）的原型指向第二个参数（构造函数）的原型，然后，第一个参数将其原型的构造函数指向自身，最后将可能存在的一些属性也附加到自身的原型上，这一系列操作实际上就是一个继承的过程。</p>
-<p>再返回到AxiosError文件中来，对于Error对象进行更改和增加部分属性值，然后完成继承的操作，同时为AxiosError增加一个内置方法<code>toJSON</code>，方便用户输出或记录错误详情。之后再继续对AxiosError对象进行完善，定义对应的错误码，以及用于识别错误实例是否属于Axios定制Error的<code>isAxiosError</code>属性，最后的<code>Axios.from</code>实际上和前面的继承操作类似，用于将一个Error对象转化为一个AxiosError对象。</p>
-<p>我们来看一下AxiosError是怎么用的，还是xhr适配器中，我们可以看到有几种错误，当请求中止时，会有<code>Request aborted</code>，当请求出现错误时会有<code>Network Error</code>，还有超时导致的错误、协议不被支持的错误；可以在lib文件夹中搜到很多AxiosError的用法，可以对不同位置的不同错误码进行简单了解，同时还应当善于使用前面提到的<code>toJSON</code>方法，这可以让我们更清晰和方便的看和记录错误，然后进行深入的原因分析。</p>
-<p>当然了，你也可以自己创建AxiosError，或者继承它创建一个新的构造函数，用于统一网络请求处的各种错误格式，比如取消请求的<code>CanceledError</code>就是继承自<code>AxiosError</code>。</p>
+                <p>前面的文章中有简单提到过，我认为最能够一目了然的看axios配置的地方除了文档之外就是根目录下的<code>index.d.ts</code>文件，无论你是否懂typescript，找到<code>AxiosRequestConfig</code>这个接口很轻松就可以看懂。并且它相较于文档更具时效性。当然，绝大多数配置项只需要看<a href="https://axios-http.com/docs/req_config">文档</a>就可以明白如何使用，url、method、baseURL、headers、data这几个都是最基础和常用的，看文档就可以了，cancelToken和signal实际上作用相同，我们可以忽略前者，后者在上篇文章中已经详细介绍过了，我们挑选几个具有代表性的依次介绍下，剩下的可以按照同样的思路去看源码来确认有什么用处。</p>
+<h3 id="transformrequesttransformresponse">transformRequest/transformResponse</h3>
+<p>这两个配置我们只看类型有点看不太懂，它们的类型基本相似，都是函数或者以函数为元素的数组。首先，我们看一下文档的说明，<code>transformRequest</code>可以允许我们在请求发送之前改变请求体，仅限于<code>PUT</code>, <code>POST</code>,<code>PATCH</code>,<code>DELETE</code>四种方法，数组中最后一个函数返回的一定是字符串或者是<code>Buffer</code> <code>ArrayBuffer</code> <code>FormData</code> <code>Stream</code>之一的实例；<code>transformResponse</code>则可以允许我们在响应传递到then/catch之前改变响应，这其实就是前面有提过一句的响应格式化。那么这个配置为什么我们几乎不会用呢？因为axios有默认值，并且这个默认值覆盖了足够多的场景。打开<code>lib/defaults/index.js</code>文件，axios提供的默认值都可以在这个文件中找到，我们找到这两个参数的默认值来看一下。</p>
+<p>axios源码对于函数的命名是非常符合语义化原则的，你可以不需要看内部函数实现就明白这个函数的功能，比如<code>normalizeHeaderName</code>这个函数，如同函数名的意思一样，是用来标准化请求头的名称的。我们看<code>transformRequest</code>的默认值，从代码可以看出来，这个函数主要做一件事就是为数据设置匹配的<code>Content-Type</code>头字段，如果一个请求携带的数据是一个<a href="https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams">URLSearchParams</a>对象，那么对应的Content-Type应该是<code>application/x-www-form-urlencoded;charset=utf-8</code>，并且要将数据转化为字符串再发送。下面对于文件列表和FormData的处理稍显复杂，它涉及到了另一个配置，<code>env.FormData</code>，还涉及到一个第三方包，但是目的是一样的，都是要确保请求数据和请求头是匹配的，避免请求因此而发送不成功。</p>
+<p>下面看<code>transformResponse</code>的默认函数，这里也会用到另一个配置，<code>transitional</code>，这个字段我们应该是比较眼熟的，因为我们在<code>Axios.prototype.request</code>方法中曾经见到过它，并且忽略了这个条件语句块。现在，我们可以看一下这个配置项在<code>transformResponse</code>中的作用是什么，至于request方法中的作用，稍后大家可以自己研究一下。可以在<code>lib/defaults/transitional.js</code>文件中看到<code>transitional</code>的默认值是一个对象，有三个键值对，在这里用到了前两个，我们按照默认值来执行这个函数的话，这个函数的作用就是在数据（此处的数据指的是经过响应拦截器处理之后的接口返回数据）是字符串并且不为空的情况下，试图通过调用<code>JSON.parse</code> 方法对其进行解析，如果解析出错则不执行任何操作，静默处理。</p>
+<h3 id="paramsserializer">paramsSerializer</h3>
+<p>这个配置项是一个函数，可以通过全局搜索快速找到其用法，在<code>lib/helpers/buildURL.js</code>文件中的同名函数中，它作为最后一个参数用于构建URL。buildURL的调用位置在适配器中，这个可以自行查找，我们看函数体的代码，一共有三个部分，第一部分检测是否有参数，如果没有就直接返回url，此时这个配置项是不会用到的；第二部分的条件语句一共有三个分支，如果用户配置了<code>paramsSerializer</code>，则按照这个配置对参数执行操作，否则执行另外两个分支对应的操作。实际上，我们可以把另外的两个分支当成是axios默认为我们设置的<code>paramsSerializer</code> 配置，我们可以通过检查axios的这个配置是否能满足我们的需求，来确定是否有必要自定义此配置。第二个分支不用多说，如果参数是一个<code>URLSearchParam</code>对象，则将其转化为字符串；复杂些的是第三个分支，如果params不是一个可迭代的对象，那么第二部分开头定义的<code>serializedParams</code>变量将在此分支被赋值为空字符串，这将导致直接略过第三部分，同样直接返回url，而如果params是一个可迭代对象，那么将对其中每个元素的值和键（或索引）进行解析和编码，目的是避免出现特殊字符导致浏览器解析失败，最终通过<code>&amp;</code>符号连接起来并将其赋给<code>serializedParams</code>；然后就到了第三部分，这里会对url再进行一次检查，看url中是否存在<code>#</code>，<code>#</code> 右边都属于url的哈希值，然后再用<code>?</code>或<code>&amp;</code>符号拼接前面提到的<code>serializedParams</code>变量，具体应该用什么符号这属于URL的相关知识，在此不做赘述。最终一个拼接完成的URL将会被返回。</p>
+<h3 id="adapter">adapter</h3>
+<p>适配器也是可以自定义配置的，即使axios已经提供了两个非常强大的适配器（一个可以用于浏览器环境，一个用于nodejs环境）。虽然我们去阅读适配器的代码时，看起来非常复杂，不过这主要是因为要处理各种可能的错误情况，实际上适配器就是真正发送请求的那一步，它是一个返回promise的函数，这个promise将在请求正常响应的情况下被resolve，其他各种错误出现时则被reject。所以我们也可以照着样子去写一个自定义的适配器。不过这可以留在下一篇文章中完成。</p>
+<h3 id="其他配置">其他配置</h3>
+<p>剩下的配置比较简单，比如<code>timeout</code>用于设置一个请求的超时时间，即请求发送之后经过<code>timeout</code>毫秒还没有响应的话，请求将会中止；<code>timeoutErrorMessage</code>用于设置超时之后的报错信息。<code>withCredentials</code> <code>xsrfCookieName</code>等几个配置只针对浏览器环境，<code>responseEncoding</code> <code>maxContentLength</code>等几个配置只针对nodejs。由于这些配置比较少用且在axios的用法非常简单，所以在此不做赘述了。</p>
 <h3 id="总结">总结</h3>
-<p>对于中止请求，我们在页面复杂的情况下要善于使用，提升页面的性能；对于错误处理，我们要善于利用<code>AxiosError</code>的自定义方法的属性，用于快速识别错误类型以及记录错误，提升分析错误和解决错误的效率。至此，<code>Axios</code>核心的一些源码就简单讲解完了，下一篇文章我们将对Axios的其他配置的部分和一些工具函数进行简单的分析。</p>
+<p>axios本身是简单的，虽然看上去它的配置项很多，但实际上我们最常用的几项是url、method、params、data，然后可能会用到baseURL、headers、timeout、signal/cancelToken；至于其他的配置用到的频率就相对来说低很多了，因为前面那些配置足以让我们很好的处理请求的整个生命周期。通过分析axios的源码我们可以学到很多东西，包括代码目录及内容的组织结构，模块的抽离，一些工具函数的小技巧，甚至是函数的命名等等，最后一篇我们将手写一个使用fetch API的适配器，来深入了解下其中的流程。</p>
 
 
                 
@@ -232,15 +218,10 @@
                 <ul class="pager">
                     
                     <li class="previous">
-                        <a href="/post/2022-05-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%BA%8C/" data-toggle="tooltip" data-placement="top" title="axios源码解析（二）">&larr;
+                        <a href="/post/2022-06-02-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E4%B8%89/" data-toggle="tooltip" data-placement="top" title="axios源码解析（三）">&larr;
                             Previous Post</a>
                     </li>
                     
-                    
-                    <li class="next">
-                        <a href="/post/2022-06-08-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E5%9B%9B/" data-toggle="tooltip" data-placement="top" title="axios源码解析（四）">Next
-                            Post &rarr;</a>
-                    </li>
                     
                 </ul>
                 
