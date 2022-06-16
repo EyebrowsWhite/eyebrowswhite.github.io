@@ -6,13 +6,13 @@
     <description>Recent content in frontend on Eyebrows White</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 08 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/categories/frontend/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 16 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/categories/frontend/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>axios源码解析（四）</title>
-      <link>https://eyebrowkang.blog/post/2022-06-08-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E5%9B%9B/</link>
-      <pubDate>Wed, 08 Jun 2022 00:00:00 +0000</pubDate>
+      <link>https://eyebrowkang.blog/post/2022-06-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E5%9B%9B/</link>
+      <pubDate>Thu, 16 Jun 2022 00:00:00 +0000</pubDate>
       
-      <guid>https://eyebrowkang.blog/post/2022-06-08-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E5%9B%9B/</guid>
+      <guid>https://eyebrowkang.blog/post/2022-06-16-axios%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E5%9B%9B/</guid>
       <description>前面的文章中有简单提到过，我认为最能够一目了然的看axios配置的地方除了文档之外就是根目录下的index.d.ts文件，无论你是否懂typ</description>
     </item>
     
