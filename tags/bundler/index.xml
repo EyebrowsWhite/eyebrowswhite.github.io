@@ -2,26 +2,26 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>bundler on Eyebrows White</title>
-    <link>https://eyebrowkang.blog/tags/bundler/</link>
+    <link>https://blog.eyebrowkang.com/tags/bundler/</link>
     <description>Recent content in bundler on Eyebrows White</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://eyebrowkang.blog/tags/bundler/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 05 Sep 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.eyebrowkang.com/tags/bundler/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>vite vs webpack vs esbuild</title>
-      <link>https://eyebrowkang.blog/post/2020-09-05-vite_vs_webpack_vs_esbuild/</link>
+      <link>https://blog.eyebrowkang.com/post/2020-09-05-vite_vs_webpack_vs_esbuild/</link>
       <pubDate>Sat, 05 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>https://eyebrowkang.blog/post/2020-09-05-vite_vs_webpack_vs_esbuild/</guid>
+      <guid>https://blog.eyebrowkang.com/post/2020-09-05-vite_vs_webpack_vs_esbuild/</guid>
       <description>vite vs webpack vs esbuild 本篇文章分享下题目中三种打包工具在开发和生产模式中的实际使用感受，希望能对你有所帮助。我使用的技术栈是react+typescri</description>
     </item>
     
     <item>
       <title>结合React上手esbuild（新手适用）</title>
-      <link>https://eyebrowkang.blog/post/2021-07-07-%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</link>
+      <link>https://blog.eyebrowkang.com/post/2021-07-07-%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</link>
       <pubDate>Tue, 07 Jul 2020 00:00:00 +0000</pubDate>
       
-      <guid>https://eyebrowkang.blog/post/2021-07-07-%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</guid>
+      <guid>https://blog.eyebrowkang.com/post/2021-07-07-%E7%BB%93%E5%90%88react%E4%B8%8A%E6%89%8Besbuild%E6%96%B0%E6%89%8B%E9%80%82%E7%94%A8/</guid>
       <description>我们都知道react有一个官方的脚手架create-react-app，一条命令就可以让你使用react编写代码，但是在这个脚手架中reac</description>
     </item>
     
